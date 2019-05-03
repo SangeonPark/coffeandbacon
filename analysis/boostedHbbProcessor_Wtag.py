@@ -298,12 +298,17 @@ class BoostedHbbProcessor(processor.ProcessorABC):
 
         #selection for W scale factor
 
-        selection.add('muonselection',(df['nmuTight']==1) & (df['nmuLoose']==1))
+        selection.add('muonselection',(df['nmuTight']==1))
+
+        #bjet & muon opposite
         selection.add('btaggedAk4',df['opposite_ak4_leadingDeepCSV'] > 0 )
         selection.add('met',(df['pfmet'] > 40.) & (df['met_collinear'] > 200.) )
         ak8_abseta = np.abs(df['AK8Puppijet0_eta'])
         dR_jet_tightmuon = np.sqrt(((ak8_abseta - df['vmuoLoose0_eta'])*(ak8_abseta - df['vmuoLoose0_eta'])+df['muon_dphi']*df['muon_dphi'])
+        
+        #W jet & muon opposite
         selection.add('opposite_ak8_muon', (ak8_abseta < 2.4) & (dR_jet_tightmuon>1.0) )
+        
         df['hadronicjet'] = np.where((ak8_abseta < 2.4) & (dR_jet_tightmuon>1.0),1,0)
         df['leptonicW'] = np.where((df['met_collinear'] > 200.),1,0)
         selection.add('final',(df['pfmet'] > 40.) & (df['nmuTight']==1) & (df['nmuLoose']==1) & (df['opposite_ak4_leadingDeepCSV'] >0) & (df['hadronicjet']==1) & (df['opposite_ak4_leadingDeepCSV'] > 0) & (df['leptonicW']>0) )
