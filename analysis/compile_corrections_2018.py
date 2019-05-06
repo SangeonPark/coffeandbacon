@@ -47,7 +47,7 @@ corrections['msdweight'] = msd_weight
 with lz4f.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/coffeandbacon/analysis/correction_files/pileup_mc.cpkl.lz4", "rb") as fin:
     pileup_corr = cloudpickle.load(fin)
 
-with uproot.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/ZPrimePlusJet/analysis/pileUp_Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.root") as fin_pileup:
+with uproot.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/ZPrimePlusJet/analysis/ggH/pileUp_Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.root") as fin_pileup:
     norm = lambda x: x / x.sum()
     data_pu = norm(fin_pileup["pileup"].values)
     data_pu_puUp = norm(fin_pileup["pileup_plus"].values)
