@@ -44,10 +44,10 @@ def msd_weight(pt, eta):
 corrections['msdweight'] = msd_weight
 
 
-with lz4f.open("correction_files/pileup_mc.cpkl.lz4", "rb") as fin:
+with lz4f.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/coffeandbacon/analysis/correction_files/pileup_mc.cpkl.lz4", "rb") as fin:
     pileup_corr = cloudpickle.load(fin)
 
-with uproot.open("correction_files/pileup_Cert_294927-306462_13TeV_PromptReco_Collisions17_withVar.root") as fin_pileup:
+with uproot.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/ZPrimePlusJet/analysis/ggH/pileUp_Cert_314472-325175_13TeV_PromptReco_Collisions18_JSON.root") as fin_pileup:
     norm = lambda x: x / x.sum()
     data_pu = norm(fin_pileup["pileup"].values)
     data_pu_puUp = norm(fin_pileup["pileup_plus"].values)
@@ -73,7 +73,7 @@ corrections['2017_pileupweight_dataset_puUp'] = pileup_corr_puUp
 corrections['2017_pileupweight_dataset_puDown'] = pileup_corr_puDown
 
 
-with uproot.open("correction_files/TrigEff_2017BtoF_noPS_Feb21.root") as fin:
+with uproot.open("/uscms/home/kkwok/work/Hbb/CMSSW_8_1_0/src/ZPrimePlusJet/analysis/ggH/TrigEff_2018_Feb21.root") as fin:
     denom = fin["h_denom"]
     num = fin["h_numer"]
     eff = num.values/np.maximum(denom.values, 1)

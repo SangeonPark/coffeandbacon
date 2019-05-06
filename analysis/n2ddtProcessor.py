@@ -169,11 +169,11 @@ class BoostedHbbProcessor(processor.ProcessorABC):
             # SumWeights is sum(scale1fb), so we need to use full value here
             weights.add('genweight', df['scale1fb'])
 
-        if dataset in self._corrections['2018_pileupweight_dataset']:
+        if dataset in self._corrections['2017_pileupweight_dataset']:
             weights.add('pileupweight',
-                        self._corrections['2018_pileupweight_dataset'][dataset](df['npu']),
-                        self._corrections['2018_pileupweight_dataset_puUp'][dataset](df['npu']),
-                        self._corrections['2018_pileupweight_dataset_puDown'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset_puUp'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset_puDown'][dataset](df['npu']),
                         )
 
         if 'ZJetsToQQ_HT' in dataset or 'WJetsToQQ_HT' in dataset:
@@ -184,9 +184,9 @@ class BoostedHbbProcessor(processor.ProcessorABC):
             # handle weight systematics for signal region
             def regionMask(w): return np.where(selection.all('noLeptons'), w, 1.)
             weights.add('trigweight',
-                        regionMask(self._corrections['2018_trigweight_msd_pt'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
-                        regionMask(self._corrections['2018_trigweight_msd_pt_trigweightUp'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
-                        regionMask(self._corrections['2018_trigweight_msd_pt_trigweightDown'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
+                        regionMask(self._corrections['2017_trigweight_msd_pt'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
+                        regionMask(self._corrections['2017_trigweight_msd_pt_trigweightUp'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
+                        regionMask(self._corrections['2017_trigweight_msd_pt_trigweightDown'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
                         )
             vmatch = (np.abs(deltaphi(df['AK8Puppijet0_phi'], df['genVPhi'])) < 0.8) & (np.abs(df['AK8Puppijet0_pt']-df['genVPt'])/df['genVPt'] < 0.5) & (np.abs(df['AK8Puppijet0_msd']-df['genVMass'])/df['genVMass'] < 0.3)
             weights.add('matched', np.ones(df.size, dtype='f'), vmatch.astype('f'), 1.-vmatch)
@@ -273,7 +273,7 @@ class BoostedHbbProcessor(processor.ProcessorABC):
 
 
 if __name__ == '__main__':
-    with lz4f.open("corrections_2018.cpkl.lz4", mode="rb") as fin:
+    with lz4f.open("corrections.cpkl.lz4", mode="rb") as fin:
         corrections = cloudpickle.load(fin)
 
     processor_instance = BoostedHbbProcessor(corrections=corrections)
