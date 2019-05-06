@@ -35,14 +35,14 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         hists = processor.dict_accumulator()
         hist.Hist.DEFAULT_DTYPE = 'f'  # save some space by keeping float bin counts instead of double
         hists['sumw'] = processor.dict_accumulator()  # the defaultdict_accumulator is broken :<
-        hists['ddtmaping_preselection'] = hist.Hist("Events",
-                                                dataset_axis,
-                                                gencat_axis,
-                                                hist.Bin("AK8Puppijet0_pt", "Jet $p_T$", 100, 300, 1300),
-                                                hist.Bin("ak8jet_rho", r"Jet $\rho$", 52, -6, -2.1),
-                                                hist.Bin("AK8Puppijet0_N2sdb1", "N2", 100, 0, 0.5),
-                                                )
         
+        hists['templates_Wtagregion'] = hist.Hist("Events",
+                                                   dataset_axis,
+                                                   gencat_axis,
+                                                   hist.Cat("systematic", "Systematic"),
+                                                   jetmass_axis,
+                                                   hist.Bin("ak8jet_n2ddt", r"Jet $N_{2,DDT}^{\beta=1}$", 40, -.25, .25),
+                                                   )
         self._accumulator = hists
 
     @property
@@ -87,6 +87,14 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         df['opposite_ak8_n3sdb1'] = np.where(dphi > np.pi/2., self.subleading_n3(df), np.inf)
         df['opposite_ak8_tau32'] = np.where(dphi > np.pi/2., df['AK8Puppijet1_tau32'], np.inf)
         df['opposite_ak8_msd'] = np.where(dphi > np.pi/2., df['AK8Puppijet1_msd'], np.inf)
+        
+    def build_mu_variables(self, df):
+        df['muon_dphi'] = np.abs(deltaphi(df['vmuoLoose0_phi'], df['AK8Puppijet0_phi']))
+        df['mutight_pt'] = df['vmuoLoose0_pt']
+        df['mutight_eta'] = df['vmuoLoose0_eta']
+        df['mutight_phi'] = df['vmuoLoose0_phi']
+        df['mutight_dphi'] = np.abs(deltaphi(df['mutight_phi'], df['AK8Puppijet0_phi']))
+        df['ak8jet_dRmutight'] = np.sqrt((df['AK8Puppijet0_eta'] - df['mutight_eta'])**2+df['mutight_dphi']**2)
 
     def build_ak4_variables(self, df):
         # dR08, dPhi08 with respect to leading ak8 jet: https://github.com/DAZSLE/BaconAnalyzer/blob/102x/Analyzer/src/JetLoader.cc#L478-L479
@@ -94,7 +102,7 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         def stack(var): return np.column_stack([df['AK4Puppijet%d_%s' % (i, var)] for i in range(n_ak4)])
         dR = stack('dR08')
         dphi = stack('dPhi08')
-        btag = stack('deepcsvb')
+        btag = np.column_stack([df['AK4Puppijet%d_deepcsvb' % (i, var)]+df['AK4Puppijet%d_deepcsvbb' % (i, var)] for i in range(n_ak4)])
         pt = stack('pt')
         # seems |eta|<2.5 already in tuple
         require = (np.abs(dphi) > np.pi/2) & (pt > 30.)
@@ -102,7 +110,11 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         df['opposite_ak4_leadingDeepCSV'] = np.max(btag_ttrej, axis=1)
         require = (dR > 0.8) & (pt > 50.)
         btag_muCR = np.where(require, btag, -np.inf)
-        df['ak4_leadingDeepCSV_dR08'] = np.max(btag_muCR, axis=1)
+        df['ak4_leadingDeepCSV_dR08'] = np.max(btag_muCR, axis=1)        
+        # muon - ak4 jet dR: this is not necessary we clean all jets within dR of 0.4 of loose muons 
+        # https://github.com/DAZSLE/BaconAnalyzer/blob/102x/Analyzer/src/JetLoader.cc#L213
+        #def dRmuon(i): return np.abs(df['tightmu_eta'] - df['AK4Puppijet%d_eta'%i])**2 + np.abs(deltaphi(df['tightmu_phi'], df['AK4Puppijet%d_phi'%i]))**2
+        #dRmu = np.column_stack([dRmuon(i) for i in range(n_ak4)])
 
     def build_met_systematics(self, df):
         metx = df['pfmet']*np.sin(df['pfmetphi'])
@@ -111,6 +123,11 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         df['pfmet_JESDown'] = np.hypot(metx + df['MetXCorrjesDown'], mety + df['MetYCorrjesDown'])
         df['pfmet_JERUp'] = np.hypot(metx + df['MetXCorrjerUp'], mety + df['MetYCorrjerUp'])
         df['pfmet_JERDown'] = np.hypot(metx + df['MetXCorrjerDown'], mety + df['MetYCorrjerDown'])
+        
+        # collinear met with muon
+        muonx = df['mutight_pt']*np.sin(df['mutight_phi'])
+        muony = df['mutight_pt']*np.cos(df['mutight_phi'])
+        df['met_collinear'] = np.sqrt((metx+muonx)*(metx+muonx)+(mety+muony)*(mety+muony))
 
     def process(self, df):
         dataset = df['dataset']
@@ -118,9 +135,9 @@ class BoostedHbbProcessor(processor.ProcessorABC):
 
         self.build_leading_ak8_variables(df)
         self.build_subleading_ak8_variables(df)
+        self.build_mu_variables(df)
         self.build_ak4_variables(df)
         self.build_met_systematics(df)
-        df['muon_dphi'] = np.abs(deltaphi(df['vmuoLoose0_phi'], df['AK8Puppijet0_phi']))
 
         selection = processor.PackedSelection()
         if isRealData:
@@ -148,12 +165,19 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         selection.add('jetKinematicsMuonCR', df['AK8Puppijet0_pt'] > 400.)
         selection.add('pfmet', df['pfmet'] < 140.)
 
+        # W-tag sf
+        selection.add('tightMuon',(df['nmuTight']==1) & (df['mutight_pt'] > 53.)) # this might need to be modified because the loose0 might not be the tight muon
+        selection.add('ak4btagMediumOppHem',df['opposite_ak4_leadingDeepCSV'] > 0.4941 ) # at least one opposite hem b-tag (M)
+        selection.add('collinearMet',(df['pfmet'] > 40.) & (df['met_collinear'] > 200.) )
+        selection.add('opposite_ak8_muon', (ak8_abseta < 2.4) & (df['ak8jet_dRmutight']>1.0) )
+
         regions = {}
         regions['preselection'] = {'trigger', 'noLeptons'}
         regions['signalregion'] = {'trigger', 'noLeptons', 'jetKinematics', 'pfmet', 'n2ddtPass', 'tightVjet', 'antiak4btagMediumOppHem'}
         regions['muoncontrol'] = {'mutrigger', 'oneMuon', 'muonAcceptance', 'jetKinematicsMuonCR', 'n2ddtPass', 'tightVjet', 'ak4btagMediumDR08', 'muonDphiAK8'}
         regions['hCCsignalregion'] = {'trigger', 'noLeptons', 'jetKinematics', 'pfmet', 'n2ddtPass', 'tightVjet', 'antiak4btagMediumOppHem', 'deepcvb'}
         regions['hCCmuoncontrol'] = {'mutrigger', 'oneMuon', 'muonAcceptance', 'jetKinematicsMuonCR', 'n2ddtPass', 'tightVjet', 'ak4btagMediumDR08', 'muonDphiAK8', 'deepcvb'}
+        regions['Wtagregion'] = {'mutrigger', 'tightMuon', 'ak4btagMediumOppHem', 'collinearMet', 'opposite_ak8_muon'}
 
         shiftSystematics = ['JESUp', 'JESDown', 'JERUp', 'JERDown']
         shiftedQuantities = {'AK8Puppijet0_pt', 'pfmet'}
@@ -169,11 +193,11 @@ class BoostedHbbProcessor(processor.ProcessorABC):
             # SumWeights is sum(scale1fb), so we need to use full value here
             weights.add('genweight', df['scale1fb'])
 
-        if dataset in self._corrections['2018_pileupweight_dataset']:
+        if dataset in self._corrections['2017_pileupweight_dataset']:
             weights.add('pileupweight',
-                        self._corrections['2018_pileupweight_dataset'][dataset](df['npu']),
-                        self._corrections['2018_pileupweight_dataset_puUp'][dataset](df['npu']),
-                        self._corrections['2018_pileupweight_dataset_puDown'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset_puUp'][dataset](df['npu']),
+                        self._corrections['2017_pileupweight_dataset_puDown'][dataset](df['npu']),
                         )
 
         if 'ZJetsToQQ_HT' in dataset or 'WJetsToQQ_HT' in dataset:
@@ -209,6 +233,10 @@ class BoostedHbbProcessor(processor.ProcessorABC):
                         regionMask(self._corrections['2017_muisoweight_abseta_pt_muisoweightShift'](mu_abseta, df['vmuoLoose0_pt'])),
                         shift=True
                         )
+            
+            # handle weight systematics for wtag CR - not needed becuase the var is part of the hist.
+            #vhadmatch = (df['AK8Puppijet0_isHadronicV'] == 2)
+            #weights.add('matchedHadronic', np.ones(df.size, dtype='f'), vhadmatch.astype('f'), 1.-vhadmatch)
 
         if self._debug:
             print("Weight statistics:")
@@ -273,10 +301,10 @@ class BoostedHbbProcessor(processor.ProcessorABC):
 
 
 if __name__ == '__main__':
-    with lz4f.open("corrections_2018.cpkl.lz4", mode="rb") as fin:
+    with lz4f.open("corrections.cpkl.lz4", mode="rb") as fin:
         corrections = cloudpickle.load(fin)
 
     processor_instance = BoostedHbbProcessor(corrections=corrections)
 
-    with lz4f.open('n2ddtProcessor.cpkl.lz4', mode='wb', compression_level=5 ) as fout:
+    with lz4f.open('WTagProcessor.cpkl.lz4', mode='wb', compression_level=5 ) as fout:
         cloudpickle.dump(processor_instance, fout)
