@@ -95,8 +95,8 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
         datadef[dataset] = urllist
 
 samples = {
-    'datadef': datadef
+    'QCD': datadef
 }
-with open("metadata/datadef.json", "w") as fout:
+with open("metadata/datadef_qcd.json", "w") as fout:
     json.dump(samples, fout, indent=4)
 
