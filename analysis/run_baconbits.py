@@ -11,15 +11,6 @@ import numpy as np
 from fnal_column_analysis_tools import hist, processor
 
 
-# instrument xrootd source
-def _read(self, chunkindex):
-    self.bytesread = getattr(self, 'bytesread', 0) + self._chunkbytes
-    return self._read_real(chunkindex)
-
-
-uproot.source.xrootd.XRootDSource._read_real = uproot.source.xrootd.XRootDSource._read
-uproot.source.xrootd.XRootDSource._read = _read
-
 
 def process_file(dataset, file, processor_instance, stats_accumulator, preload_items=None):
     fin = uproot.open(file)
