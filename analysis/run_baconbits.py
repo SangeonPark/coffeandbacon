@@ -20,7 +20,10 @@ def process_file(dataset, file, processor_instance, stats_accumulator, preload_i
         if 'SumWeights' in fin:
             skim_sumw = fin['SumWeights'].values[0]
     else:
-        tree = fin['Events']
+        if 'Events' in fin:
+            tree = fin['Events']
+        else:
+            return processor_instance.accumulator.identity(), stats_accumulator.identity()    
 
     tic = time.time()
 
