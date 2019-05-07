@@ -63,8 +63,7 @@ if __name__ == '__main__':
     with open(args.samplejson) as fin:
         samplefiles = json.load(fin)
 
-    mappedsamples = samplefiles['controlPlotsGGH_2018']
-    sample = mappedsamples[args.sample]
+    sample = samplefiles[args.sample]
     filelist = []
     for dataset, files in sample.items():
         for file in files[:args.limit]:
