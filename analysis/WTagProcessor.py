@@ -102,7 +102,7 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         def stack(var): return np.column_stack([df['AK4Puppijet%d_%s' % (i, var)] for i in range(n_ak4)])
         dR = stack('dR08')
         dphi = stack('dPhi08')
-        btag = np.column_stack([df['AK4Puppijet%d_deepcsvb' % (i, var)]+df['AK4Puppijet%d_deepcsvbb' % (i, var)] for i in range(n_ak4)])
+        btag = np.column_stack([df['AK4Puppijet%d_deepcsvb' % (i)]+df['AK4Puppijet%d_deepcsvbb' % (i)] for i in range(n_ak4)])
         pt = stack('pt')
         # seems |eta|<2.5 already in tuple
         require = (np.abs(dphi) > np.pi/2) & (pt > 30.)
