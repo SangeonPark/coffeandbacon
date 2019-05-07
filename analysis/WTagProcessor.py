@@ -166,6 +166,7 @@ class BoostedHbbProcessor(processor.ProcessorABC):
         selection.add('pfmet', df['pfmet'] < 140.)
 
         # W-tag sf
+        ak8_abseta = np.abs(df['AK8Puppijet0_eta'])
         selection.add('tightMuon',(df['nmuTight']==1) & (df['mutight_pt'] > 53.)) # this might need to be modified because the loose0 might not be the tight muon
         selection.add('ak4btagMediumOppHem',df['opposite_ak4_leadingDeepCSV'] > 0.4941 ) # at least one opposite hem b-tag (M)
         selection.add('collinearMet',(df['pfmet'] > 40.) & (df['met_collinear'] > 200.) )
