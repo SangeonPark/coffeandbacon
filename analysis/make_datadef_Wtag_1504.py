@@ -12,7 +12,7 @@ import difflib
 
 uproot_xrootd_opts = dict(chunkbytes=30*1024, limitbytes=20*(1024**2))
 fnaleos = "root://cmseos.fnal.gov/"
-dazsle_root = "/eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v15.04-vbf"
+dazsle_root = "/eos/uscms/store/user/lpcbacon/dazsle/zprimebits-v15.04"
 patterns = ["TT*","SingleMuon*","WJetsToLNu*","DYJetsToLL*","ST*"]
 #patterns = ["WJetsToLNu*"]
 getentries = False
@@ -97,6 +97,6 @@ with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
 samples = {
     'datadef': datadef
 }
-with open("metadata/datadef_Wtag_1504.json", "w") as fout:
+with open("metadata/datadef_Wtag_1504_novbf.json", "w") as fout:
     json.dump(samples, fout, indent=4)
 
