@@ -213,8 +213,8 @@ class BoostedHbbProcessor(processor.ProcessorABC):
                         regionMask(self._corrections['2017_trigweight_msd_pt_trigweightUp'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
                         regionMask(self._corrections['2017_trigweight_msd_pt_trigweightDown'](df['AK8Puppijet0_msd_raw'], df['AK8Puppijet0_pt'])),
                         )
-            vmatch = (np.abs(deltaphi(df['AK8Puppijet0_phi'], df['genVPhi'])) < 0.8) & (np.abs(df['AK8Puppijet0_pt']-df['genVPt'])/df['genVPt'] < 0.5) & (np.abs(df['AK8Puppijet0_msd']-df['genVMass'])/df['genVMass'] < 0.3)
-            weights.add('matched', np.ones(df.size, dtype='f'), vmatch.astype('f'), 1.-vmatch)
+            #vmatch = (np.abs(deltaphi(df['AK8Puppijet0_phi'], df['genVPhi'])) < 0.8) & (np.abs(df['AK8Puppijet0_pt']-df['genVPt'])/df['genVPt'] < 0.5) & (np.abs(df['AK8Puppijet0_msd']-df['genVMass'])/df['genVMass'] < 0.3)
+            #weights.add('matched', np.ones(df.size, dtype='f'), vmatch.astype('f'), 1.-vmatch)
 
             # handle weight systematics for muon CR
             def regionMask(w): return np.where(selection.all('oneMuon'), w, 1.)
